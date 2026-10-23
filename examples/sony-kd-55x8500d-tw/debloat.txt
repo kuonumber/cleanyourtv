@@ -1,0 +1,84 @@
+# Sony BRAVIA KD-55X8500D (2016, SVP-DTV15 "BRAVIA 4K 2015" platform, MediaTek), Taiwan firmware
+# Android TV 7.0 (SDK 24), build SVP4KDTV15_TW-user 7.0 NRD91N.S43 5.455 (Sep 2020), 1.5 GB RAM
+# Sony Taiwan ended software updates for this set (notice dated 2024-11-01): there is no Android 8.0
+# for the TW variant. The upstream launcher (minSdk 26) does not install here; the android7-launcher branch
+# (minSdk 24, java.time desugaring, four API-26 call sites guarded) builds, installs and owns Home on this set.
+#
+# Apply:   TV_HOST=<tv ip> tools/disable.sh examples/sony-kd-55x8500d-tw/debloat.txt
+# Undo:    TV_HOST=<tv ip> tools/restore.sh examples/sony-kd-55x8500d-tw/debloat.txt
+# Everything is DISABLED, not uninstalled. Comment out any line you want to keep.
+#
+# Stock launcher: com.google.android.leanbacklauncher (the classic Leanback launcher; the only other HOME
+# handler is com.android.tv.settings/.FallbackHome). Not in this list: launcher/build-and-install.sh disables it
+# once the new Home is up. restore.sh defaults to tvlauncher, so name it when undoing:
+#   TV_HOST=<tv ip> tools/restore.sh examples/sony-kd-55x8500d-tw/debloat.txt com.google.android.leanbacklauncher
+# Live TV / input app: com.sony.dtv.tvx. Keep it: it also plays every HDMI input.
+# Keep: com.sony.dtv.tvinput.*, tvplayer*, braviasync* (HDMI-CEC), remotepairing, remotecontrolsettings,
+# uinputservice, imeproxy, ime.chww (the active keyboard), settingsprovider, netflixmanager (Netflix
+# button), duid.generator, enclave.service, systemupdate, systembootmonitor, timers, all com.mediatek.*
+# and mtktvapi.agent. com.google.android.backdrop is kept on this firmware: with the stock launcher it is
+# the only screensaver. com.sony.dtv.networkrecommendation is kept: on Android 7.0 that name matches the
+# Wi-Fi network recommendation provider, not a content row.
+# Derived from examples/sony-kd-65x9300d (same platform, Android 8.0): 26 of its 31 packages exist on
+# this 7.0 build; tvlaunchercustomizer, indiametarecommendation, tvrecommendations, tvtutorials and Vewd
+# do not. No Samba TV (tv.samba.ssm) on this firmware. The privacy audit found no ACR package.
+# Added for 7.0: the Sony recommendation feeders that fill the Leanback launcher's rows (sonyshelf,
+# recommendationservice, watchtvrecommendation, woprecommendation, bravialifehack), all with boot
+# receivers, and the store demo pair.
+
+# Applied 2026-10-23 on this set: all 24 default entries disabled, optional entries kept; Home stayed on
+# leanbacklauncher. One promo card survives the list: com.sony.dtv.netflixmanager posts a "watch Netflix"
+# recommendation 15-35 times a day. Keep the package (it answers the remote's NETFLIX key via GLOBAL_BUTTON
+# and WAKE_ON_NETFLIX); silence the card instead, outside the list and outside restore.sh:
+#   tools/tv.py 'appops set com.sony.dtv.netflixmanager POST_NOTIFICATION ignore'   # undo: ... allow
+# Cards from packages disabled above linger in the row until the next reboot.
+
+# Sony and Google content rows, ads and promos
+com.sony.dtv.sonyselect                        # Sony Select app store/promo tile
+com.sony.dtv.discovery                         # Sony Discover content bar
+com.sony.dtv.bivlinfo                          # BIVL content service list (feeds Discover)
+com.sony.dtv.sonyshelf                         # Sony shelf row on the Leanback launcher (boot receiver)
+com.sony.dtv.recommendationservice             # Sony recommendation feeder (boot receiver)
+com.sony.dtv.watchtvrecommendation             # "watch TV" recommendation row (boot receiver)
+com.sony.dtv.woprecommendation                 # Sony recommendation plugin
+com.sony.dtv.bravialifehack                    # BRAVIA tips/promo recommendations (boot receiver)
+android.autoinstalls.config.sony.bravia        # Play auto-install of partner apps
+
+# Store demo mode
+com.sony.dtv.demomode                          # shop demo (USB/screen-state receivers, Discover shop plugin)
+com.sony.dtv.shopsettings                      # shop settings
+
+# Telemetry, remote support and feedback
+com.sony.dtv.da.service                        # Sony device agent / remote support
+com.qterics.da.product                         # Qterics device agent
+com.google.android.tv.bugreportsender
+com.google.android.feedback
+com.sony.dtv.b2b.vendorprotocol                # SDDP model/MAC/IP broadcast for Control4-style home
+                                               # automation; re-enable if you use one
+
+# Preloaded apps, tutorials and dead services
+com.sony.dtv.customersupport                   # Help tile
+com.sony.dtv.smarthelp
+com.sony.dtv.imanual                           # i-Manual
+com.sony.dtv.touchpad.tutorial                 # touchpad remote tutorial
+com.google.android.music                       # Google Play Music, shut down in 2020
+com.google.android.videos                      # Google Play Movies, retired on Android TV
+com.google.android.play.games
+com.amazon.aiv.us                              # US Prime Video stub; the real app is amazonvideo.livingroom
+
+# Optional, OFF BY DEFAULT HERE (commented out = kept). Uncomment the ones you do not use.
+# com.sony.dtv.osat.music                      # USB music player
+# com.sony.dtv.osat.album                      # USB photo viewer
+# com.sony.dtv.osat.video                      # USB video player
+# com.sony.huey.dlna.module                    # DLNA renderer (play from a phone/NAS over the LAN)
+# com.sony.huey.dlna.renderersettings
+# com.sonyericsson.dlna
+# com.sonyericsson.dlna.dtcpplayer
+# com.opera.sdk.example                        # the TV's "Internet Browser" (Opera)
+# com.sony.dtv.browser.ceb                     # Opera browser engine and web-app runtime
+# com.sony.dtv.browser.webappinstaller
+# com.sony.dtv.browser.webappruntime
+# com.sony.dtv.browser.webappservice
+# com.google.android.inputmethod.japanese      # Japanese keyboard
+# com.google.android.katniss                   # Google Assistant / voice search (remote mic button)
+# com.google.android.speech.pumpkin            # offline hotword model, unused once the assistant is off

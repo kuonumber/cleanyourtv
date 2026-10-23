@@ -15,6 +15,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ChangedPackages;
+import android.content.pm.PackageInfo;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -245,6 +246,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private final TileRefresh tileRefresh = new TileRefresh();
     /** PackageManager's change counter at the last rebuild, to catch a package broadcast that never arrived. */
     private int packageSequence;
+    /** Below API 26 (no ChangedPackages): a hash of the installed set taken at the last rebuild. */
+    private long packageFingerprint;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
     /** Reorder mode is on (top-bar button). */
@@ -954,13 +957,37 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     /** True when PackageManager reports apps changed since the last rebuild (one binder call). */
     private boolean packagesChangedSinceRebuild() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return legacyPackageFingerprint() != packageFingerprint;
         ChangedPackages changed = getPackageManager().getChangedPackages(packageSequence);
         return changed != null && !changed.getPackageNames().isEmpty();
     }
 
     private int currentPackageSequence(int since) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            packageFingerprint = legacyPackageFingerprint();
+            return since;
+        }
         ChangedPackages changed = getPackageManager().getChangedPackages(since);
         return changed != null ? changed.getSequenceNumber() : since;
+    }
+
+    /**
+     * Android 7.0/7.1 has no ChangedPackages, so the installed set is hashed instead: package name, last update
+     * time and enabled state, about 180 entries on a TV. One PackageManager call per resume; a failure reads as
+     * "changed" so the tiles are rebuilt rather than left stale.
+     */
+    private long legacyPackageFingerprint() {
+        long h = 17;
+        try {
+            for (PackageInfo p : getPackageManager().getInstalledPackages(0)) {
+                h = h * 31 + p.packageName.hashCode();
+                h = h * 31 + p.lastUpdateTime;
+                h = h * 31 + (p.applicationInfo != null && p.applicationInfo.enabled ? 1 : 0);
+            }
+        } catch (Exception e) {
+            return packageFingerprint + 1;
+        }
+        return h;
     }
 
     /**

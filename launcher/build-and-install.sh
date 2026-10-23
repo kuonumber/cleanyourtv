@@ -112,8 +112,22 @@ echo "$START_OUT"
 # Both halves matter: some builds answer "Status: ok" for a task that was merely brought to the
 # front, and an activity that cannot start still prints "Error: Activity not started".
 if ! printf '%s' "$START_OUT" | grep -qF 'Status: ok' || printf '%s' "$START_OUT" | grep -qi '^Error'; then
-  echo "ERROR: the new launcher did not start (see above); $STOCK_LAUNCHER was left enabled." >&2
-  exit 1
+  # Sony's Android 7.0 firmware answers "Status: timeout" after about a second for a cold start that is
+  # displayed a few seconds later (examples/sony-kd-55x8500d-tw: "Displayed ... +3s"). Before giving up,
+  # watch the resumed activity for up to 20 s. A start that printed "Error" is still a failure.
+  STARTED=0
+  if ! printf '%s' "$START_OUT" | grep -qi '^Error'; then
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      sleep 2
+      case "$("$PY" -I ../tools/tv.py 'dumpsys activity activities | grep mResumedActivity' 2>/dev/null)" in
+        *com.gathin.tvhome/.MainActivity*) STARTED=1; echo "The new launcher is in the foreground (am start -W timed out early)."; break ;;
+      esac
+    done
+  fi
+  if [ "$STARTED" != 1 ]; then
+    echo "ERROR: the new launcher did not start (see above); $STOCK_LAUNCHER was left enabled." >&2
+    exit 1
+  fi
 fi
 printf '%s\n' \
   "pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted" \
